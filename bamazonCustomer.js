@@ -4,12 +4,9 @@ var inquirer = require('inquirer');
 
 var connection = mysql.createConnection({
     host: "localhost",
-
-    port: 3306,
-
+    port: 8889,
     user: "root",
-
-    password: "",
+    password: "root",
     database: "bamazon_db"
 });
 
@@ -20,29 +17,48 @@ connection.connect(function(err) {
 
 // List available items for sale
 function start() {
-    var query = "SELECT * FROM products";
-    connection.query(query, function(err, res) {
-        if (err) throw err;
+    var query = connection.query("SELECT * FROM products", function(err, res) {
+    if (err) throw err;
 
-        for (var i=0; i<res.length; i++) {
-            console.log(res[i].id + "     | " + res[i].product_name + " -- " + res[i].department_name + "--" + res[i].price + "--" + res[i].stock_quantity);
-        };
+    console.log("\nAVAILABLE INVENTORY");
+    console.log("---------------------------------------------------------------\n");
+    
+    // // Loop through product information to display all at once
+    var displayScreen = "";
+		for (var i = 0; i < res.length; i++) {
+			displayScreen = "";
+			displayScreen += "Item ID: " + res[i].id + "  ||  ";
+			displayScreen += "Product Name: " + res[i].product_name + "  ||  ";
+			displayScreen += "Department: " + res[i].department_name + "  ||  ";
+            displayScreen += "Price: $" + res[i].price + "  ||  ";
+            displayScreen += "In Stock: " + res[i].stock_quantity + "\n";
 
-        userPrompt();
-    })
+			console.log(displayScreen);
+		}
+
+        console.log("----------------------------------------------------------------------\n");
+          
+    // Initialize user input
+    userPrompt();
+});
 };
 
-var userPrompt = function() {
-    inquirer.prompt([{
+// Ask user what they want to do
+function userPrompt() {
+    inquirer.prompt([
+        {
         name: "item",
         type: "input",
-        message: "Enter the ID of the item you would like to purchase.",
+        message: "Enter the ID of the item you would like to purchase: ",
+        // Ensure that the value is valid
         validate: function(value) {
             if (isNaN(value) === false) {
                 return true;
             }
             return false;
         }
+        },
+        {
         name: "quantity",
         type: "input",
         message: "How many would you like to purchase?",
@@ -52,21 +68,27 @@ var userPrompt = function() {
             }
             return false;
         }
-    }])
+        }
+    ])
+
+    // Answers return based on the mysql database availability
     .then(function(answer) {
-        var Product = answers.item;
-        var Amount = answers.quantity;
+        var Product = answer.item;
+        var Amount = answer.quantity;
 
         connection.query("SELECT * FROM products WHERE ?", {
-            id: answers.item
+            id: answer.item
         },function(err, res) {
+
+            // Determine if there are enough items
             if (Product > res[0].stock_quantity){
-                console.log("There aren't enough items in stock!");
+                console.log("\nThere aren't enough items in stock!\n");
             userPrompt();
             }
             else {
-                console.log("You can buy the item!");
+                console.log("\nYou can buy the item!");
 
+                // Update quantity and keep track of cost
                 var newQuantity = (res[0].stock_quantity - Amount);
                 var Subtotal = (res[0].price * Amount);
 
@@ -75,12 +97,14 @@ var userPrompt = function() {
                 }, {
                     id: Product
                 }], function(err, res) {
-                    console.log("Your total cost was $" + Subtotal);
+                    console.log("\nYour total cost was $" + Subtotal);
 
-                    userPrompt();
+                    // Start over with updated database
+                    start();
                 })
             }
-        })
-    })
+        });
+    });
 }
 
+start();

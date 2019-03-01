@@ -30,5 +30,3 @@ VALUES (01, "Carhartt hat", "clothing", 34.99, 30)
 , (08, "Derek Jeter baseball glove", "athletics", 35.99, 15)
 , (09, "Levi's 511 jeans", "clothing", 54.99, 35)
 , (10, "Bob Dylan Basement Tapes", "music", 69.99, 12);
-
-SELECT * FROM products;
